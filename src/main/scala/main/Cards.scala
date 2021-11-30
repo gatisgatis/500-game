@@ -6,69 +6,63 @@ object Cards {
 
   trait Rank {
     def toString: String
+    val value: Int
   }
 
-  object Rank extends Rank {
+  object Rank {
     object Nine extends Rank {
       override def toString: String = "9"
+      val value: Int = 0
     }
     object Ten extends Rank {
       override def toString: String = "T"
+      val value: Int = 10
     }
     object Jack extends Rank {
       override def toString: String = "J"
+      val value: Int = 2
     }
     object Queen extends Rank {
       override def toString: String = "Q"
+      val value: Int = 3
     }
     object King extends Rank {
       override def toString: String = "K"
+      val value: Int = 4
     }
     object Ace extends Rank {
       override def toString: String = "A"
+      val value: Int = 11
     }
   }
 
   trait Suit {
     def toString: String
+    val color: String
   }
 
-  object Suit extends Suit {
+  object Suit {
     object Club extends Suit {
       override def toString: String = "c"
+      val color: String = Console.GREEN
     }
     object Diamond extends Suit {
       override def toString: String = "d"
+      val color: String = Console.BLUE
     }
     object Heart extends Suit {
       override def toString: String = "h"
+      val color: String = Console.RED
     }
     object Spade extends Suit {
       override def toString: String = "s"
+      val color: String = Console.WHITE
     }
   }
 
   case class Card(suit: Suit, rank: Rank) {
-    import Rank._
-    def value: Int = rank match {
-      case Ace => 11
-      case Ten => 10
-      case King => 4
-      case Queen => 3
-      case Jack => 2
-      case Nine => 0
-    }
-
-    override def toString:String = {
-      val color: String = suit match {
-        case Suit.Club => Console.GREEN
-        case Suit.Diamond => Console.BLUE
-        case Suit.Heart => Console.RED
-        case Suit.Spade => Console.WHITE
-        case _ => Console.BLACK
-      }
-      color + rank.toString + suit.toString + Console.RESET
-    }
+    def value: Int = rank.value
+    override def toString:String = suit.color + rank.toString + suit.toString + Console.RESET
   }
 
   import Suit._
@@ -84,10 +78,5 @@ object Cards {
 
     def shuffle: List[Card] = Random.shuffle(deck)
   }
-
-
-//  def toHumanReadableCards(cards: List[Card]): String = {
-//    cards.foldLeft("")((acc, cur) => acc + " " + cur.toString)
-//  }
 
 }
