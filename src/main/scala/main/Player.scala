@@ -1,0 +1,15 @@
+package main
+
+final case class Player(cards: List[Card], bid: Int, points: Int) {
+  private def cardsSorted: List[Card] = (for {
+    s <- Suit.all
+    sameSuitCards = cards.filter(_.suit == s)
+    sorted = sameSuitCards.sortWith(_.value > _.value)
+  } yield sorted).toList.flatten
+
+  override def toString: String = {
+    val cardsAsString = if(cards.isEmpty) "---" else cardsSorted.foldLeft("")((acc, cur) => acc + cur.toString + " ")
+    val bidAsString = if(bid < 0) "Passed" else if (bid == 0) "No Bid Made" else bid
+    "Cards: " + cardsAsString + " | Bid: " + bidAsString + " | Points: " + points
+  }
+}
