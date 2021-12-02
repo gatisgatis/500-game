@@ -86,4 +86,6 @@ object Simulation extends App {
   val round34 = Round.init(2, SecondPlayer, Deck.shuffle)
   println(round34)
 
+  val res = Card.fromString("dasda").toRight("")
+
 }

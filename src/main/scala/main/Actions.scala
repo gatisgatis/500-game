@@ -14,10 +14,10 @@ object Actions {
   }
 
   private def checkForInvalidBid(round: Round, bid: Int): Either[String, Unit] = {
-    if (bid % 5 != 0) Left("Invalid bid. Bid must be with a step of 5")
+    if (bid >= 0 && bid % 5 != 0) Left("Invalid bid. Bid must be with a step of 5")
     else if (bid >= 0 && bid < 60) Left(s"Bid must be greater or equal to 60")
     else if (bid > 205) Left(s"Bid is too high")
-    else if (bid >= 0 && bid < round.highestBid) Left(s"Bid must be greater than bid form previous bidder (${round.highestBid})")
+    else if (bid >= 0 && bid <= round.highestBid) Left(s"Bid must be greater than bid form previous bidder (${round.highestBid})")
     else Right()
   }
 
