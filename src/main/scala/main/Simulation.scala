@@ -1,6 +1,6 @@
 package main
 
-import main.Actions.{makeBid, passCards, playCard, takeCards, updateGame}
+import main.Actions.{makeBid, passCards, playCard, takeCards, updateGameAfterRound}
 import main.PlayerIndex.{FirstPlayer, SecondPlayer}
 import main.Rank.{Ace, Jack, King, Nine, Queen, Ten}
 import main.Suit.{Club, Diamond, Heart, Spade}
@@ -8,7 +8,7 @@ import main.Suit.{Club, Diamond, Heart, Spade}
 object Simulation extends App {
 
   // ONE FULL ROUND SIMULATION
-  val round = Round.init(1, FirstPlayer, Deck.deck)
+  val round = Game.init(1, FirstPlayer, Nil, Deck.deck)
   println(round)
 
   val round2 = makeBid(round, 80)
@@ -79,13 +79,11 @@ object Simulation extends App {
   val round33 = playCard(round32.getOrElse(round), Card(Club, Ten))
   println(round33.getOrElse(round))
 
-  val game = updateGame(round33.getOrElse(round), Game(Nil))
+  val game = updateGameAfterRound(round33.getOrElse(round))
   println(game)
   println()
 
-  val round34 = Round.init(2, SecondPlayer, Deck.shuffle)
+  val round34 = Game.init(2, SecondPlayer, Nil, Deck.shuffle)
   println(round34)
-
-  val res = Card.fromString("dasda").toRight("")
 
 }

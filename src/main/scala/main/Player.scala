@@ -12,4 +12,8 @@ final case class Player(cards: List[Card], bid: Int, points: Int) {
     val bidAsString = if(bid < 0) "Passed" else if (bid == 0) "No Bid Made" else bid
     "Cards: " + cardsAsString + " | Bid: " + bidAsString + " | Points: " + points
   }
+  def toStringHidden: String = {
+    val bidAsString = if(bid < 0) "Passed" else if (bid == 0) "No Bid Made" else bid
+    "Cards: hidden | Bid: " + bidAsString + " | Points: " + points
+  }
 }
