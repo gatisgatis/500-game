@@ -7,7 +7,7 @@ import scala.io.StdIn.readLine
 
 object Main extends App {
 
-  val info:String = {
+  val info: String =
     s"""|Valid commands:
         |start - starts a new game
         |exit - exits program
@@ -15,17 +15,14 @@ object Main extends App {
         |again - shows game state again
         |info - shows valid commands
         |""".stripMargin
-  }
 
   def resultsString: String = {
     val top =
       s"""|${FirstPlayer} ${SecondPlayer} ${ThirdPlayer}
           |   500      500      500
           |""".stripMargin
-    if(legitGame.isEmpty) "Game not started yet! No results to show"
-    else legitGame.get.results.foldLeft(top)((acc, result) => {
-      acc + result.toString
-    })
+    if (legitGame.isEmpty) "Game not started yet! No results to show"
+    else legitGame.get.results.foldLeft(top)((acc, result) => acc + result.toString)
   }
 
   println("WELCOME TO 500 CARD GAME.")
@@ -53,46 +50,39 @@ object Main extends App {
       case "results" => println(resultsString)
       case "again" => () // nothing. it will just reprint gameState...
       case "info" => println(info)
-      case input => {
+      case input =>
         legitGame match {
           case None => ()
-          case Some(game) => {
+          case Some(game) =>
             game.phase match {
-              case Bidding => {
+              case Bidding =>
                 gameEither = for {
                   bid <- input.toIntOption.toRight("Invalid bid")
                   newRound <- Actions.makeBid(game, bid)
                 } yield newRound
-              }
               case TakeCards => gameEither = Actions.takeCards(game)
-              case PassCards => {
+              case PassCards =>
                 val inputSplit = input.split(" ")
                 gameEither = for {
-                  _ <- if(inputSplit.length == 2) Right() else Left("Wrong Input as 2 cards")
+                  _ <- if (inputSplit.length == 2) Right() else Left("Wrong Input as 2 cards")
                   cardLeft <- Card.fromString(inputSplit(0)).toRight("Card Left invalid")
                   cardRight <- Card.fromString(inputSplit(1)).toRight("Card Right invalid")
                   newRound <- Actions.passCards(game, cardLeft, cardRight)
                 } yield newRound
-              }
-              case PlayCards => {
+              case PlayCards =>
                 gameEither = for {
                   card <- Card.fromString(input).toRight("Invalid card typed")
                   newRound <- Actions.playCard(game, card)
                 } yield newRound
-              }
-              case RoundEnd => {
+              case RoundEnd =>
                 gameEither = for {
                   newGame <- Actions.updateGameAfterRound(game)
                 } yield newGame
-              }
-              case GameEnd => {
+              case GameEnd =>
                 println("Game Finished")
                 println(resultsString)
-              }
             }
-          }
         }
-      }
     }
   }
 

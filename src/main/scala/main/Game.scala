@@ -4,22 +4,23 @@ import main.Phase.{Bidding, GameEnd, PassCards, PlayCards, RoundEnd, TakeCards}
 import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 
 case class Game(
-                  cardsOnBoard: List[Card],
-                  requiredSuit: Option[Suit],
-                  cardsToTake: List[Card],
-                  trump: Option[Suit],
-                  highestBid: Int,
-                  activePlayerIndex: PlayerIndex,
-                  biddingWinnerIndex: Option[PlayerIndex],
-                  roundNumber: Int,
-                  playerIndexStartingThisRound: PlayerIndex,
-                  players: Map[PlayerIndex, Player],
-                  phase: Phase,
-                  results: List[Results]
-                ) {
+  cardsOnBoard: List[Card],
+  requiredSuit: Option[Suit],
+  cardsToTake: List[Card],
+  trump: Option[Suit],
+  highestBid: Int,
+  activePlayerIndex: PlayerIndex,
+  biddingWinnerIndex: Option[PlayerIndex],
+  roundNumber: Int,
+  playerIndexStartingThisRound: PlayerIndex,
+  players: Map[PlayerIndex, Player],
+  phase: Phase,
+  results: List[Results],
+) {
   override def toString: String = {
-    val cardsOnBoardAsString: String = if (cardsOnBoard.isEmpty) "---"
-    else cardsOnBoard.foldLeft("")((acc, cur) => acc + cur.toString + " ")
+    val cardsOnBoardAsString: String =
+      if (cardsOnBoard.isEmpty) "---"
+      else cardsOnBoard.foldLeft("")((acc, cur) => acc + cur.toString + " ")
     val requiredSuitAsString: String = requiredSuit match {
       case Some(suit) => suit.color + suit.fullName + Console.RESET
       case _ => "---"
@@ -49,10 +50,10 @@ case class Game(
       s"$prefixForActivePlayer$ThirdPlayer: ${players(ThirdPlayer)}"
     } else s"  $ThirdPlayer: ${players(ThirdPlayer).toStringHidden}"
 
-
     val info = phase match {
       case Bidding => s"$activePlayerIndex must bid. Enter positive integer to bid, negative to pass"
-      case TakeCards => s"""|All players have passed.
+      case TakeCards =>
+        s"""|All players have passed.
                             |$activePlayerIndex won bidding with bid ${highestBidAsString} and must take cards from the board
                             |Enter any symbol to take cards
                             |""".stripMargin
@@ -101,7 +102,7 @@ object Game {
       phase = Bidding,
       biddingWinnerIndex = None,
       results = results,
-      playerIndexStartingThisRound = startPlayerIndex
+      playerIndexStartingThisRound = startPlayerIndex,
     )
   }
 }

@@ -2,15 +2,15 @@ package main
 
 case class Card(suit: Suit, rank: Rank) {
   def value: Int = rank.value
-  override def toString:String = suit.color + rank.toString + suit.toString + Console.RESET
+  override def toString: String = suit.color + rank.toString + suit.toString + Console.RESET
 }
 
 import Suit._
 import Rank._
 
 object Card {
-  def fromString(input: String): Option[Card] = {
-    if(input.length != 2) None
+  def fromString(input: String): Option[Card] =
+    if (input.length != 2) None
     else {
       val rankPart = input(0).toUpper
       val suitPart = input(1).toUpper
@@ -35,5 +35,4 @@ object Card {
         r <- rank
       } yield Card(s, r)
     }
-  }
 }

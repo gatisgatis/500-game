@@ -8,12 +8,12 @@ final case class Player(cards: List[Card], bid: Int, points: Int) {
   } yield sorted).toList.flatten
 
   override def toString: String = {
-    val cardsAsString = if(cards.isEmpty) "---" else cardsSorted.foldLeft("")((acc, cur) => acc + cur.toString + " ")
-    val bidAsString = if(bid < 0) "Passed" else if (bid == 0) "No Bid Made" else bid
+    val cardsAsString = if (cards.isEmpty) "---" else cardsSorted.foldLeft("")((acc, cur) => acc + cur.toString + " ")
+    val bidAsString = if (bid < 0) "Passed" else if (bid == 0) "No Bid Made" else bid
     "Cards: " + cardsAsString + " | Bid: " + bidAsString + " | Points: " + points
   }
   def toStringHidden: String = {
-    val bidAsString = if(bid < 0) "Passed" else if (bid == 0) "No Bid Made" else bid
+    val bidAsString = if (bid < 0) "Passed" else if (bid == 0) "No Bid Made" else bid
     "Cards: hidden | Bid: " + bidAsString + " | Points: " + points
   }
 }

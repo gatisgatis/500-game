@@ -10,9 +10,9 @@ trait Results {
 
   override def toString: String = {
 
-    val firstPlayerBid = if(playerIndexWinningBid == FirstPlayer) s"($winningBid)" else "     "
-    val secondPlayerBid = if(playerIndexWinningBid == SecondPlayer) s"($winningBid)" else "     "
-    val thirdPlayerBid = if(playerIndexWinningBid == ThirdPlayer) s"($winningBid)" else "     "
+    val firstPlayerBid = if (playerIndexWinningBid == FirstPlayer) s"($winningBid)" else "     "
+    val secondPlayerBid = if (playerIndexWinningBid == SecondPlayer) s"($winningBid)" else "     "
+    val thirdPlayerBid = if (playerIndexWinningBid == ThirdPlayer) s"($winningBid)" else "     "
 
     s"""|   $firstPlayerBid     $secondPlayerBid     $thirdPlayerBid
         |   ${pointsGame(FirstPlayer)}     ${pointsGame(SecondPlayer)}    ${pointsGame(ThirdPlayer)}
