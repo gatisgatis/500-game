@@ -3,7 +3,7 @@ package main
 import main.Phase.{Bidding, GameEnd, PassCards, PlayCards, RoundEnd, TakeCards}
 import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 
-case class Game(
+final case class Game(
   cardsOnBoard: List[Card],
   requiredSuit: Option[Suit],
   cardsToTake: List[Card],

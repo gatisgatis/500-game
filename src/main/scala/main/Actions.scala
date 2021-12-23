@@ -18,7 +18,7 @@ object Actions {
     else if (bid > 205) Left(s"Bid is too high")
     else if (bid >= 0 && bid <= game.highestBid)
       Left(s"Bid must be greater than bid form previous bidder (${game.highestBid})")
-    else Right()
+    else Right(())
 
   private def nextToBidPlayerIndex(game: Game, bid: Int): Either[String, PlayerIndex] = {
     val nextIndex = game.activePlayerIndex.next
@@ -39,15 +39,15 @@ object Actions {
   def makeBid(game: Game, bid: Int): Either[String, Game] =
     for {
       // TODO. Is this the right way to do it?
-      _ <- if (game.phase != Bidding) Left("Cannot make a bid. No bidding phase now") else Right()
+      _ <- if (game.phase != Bidding) Left("Cannot make a bid. No bidding phase now") else Right(())
       player <- getPlayer(game, game.activePlayerIndex)
-      _ <- if (player.bid >= 0) Right() else Left(s"${game.activePlayerIndex} has already passed this round")
+      _ <- if (player.bid >= 0) Right(()) else Left(s"${game.activePlayerIndex} has already passed this round")
       playerGamePoints = game.results.lastOption match {
         case None => 0
         case Some(line) => line.pointsGame(game.activePlayerIndex)
       }
       _ <-
-        if (playerGamePoints < 1000) Right()
+        if (playerGamePoints < 1000) Right(())
         else Left(s"${game.activePlayerIndex} are not allowed to bid if total points above 1000. Only pass allowed.")
       _ <- checkForInvalidBid(game, bid)
     } yield {
@@ -102,12 +102,12 @@ object Actions {
 
   def passCards(game: Game, cardToLeft: Card, cardToRight: Card): Either[String, Game] =
     for {
-      _ <- if (game.phase != PassCards) Left("Cannot pass cards. No pass-cards phase now") else Right()
+      _ <- if (game.phase != PassCards) Left("Cannot pass cards. No pass-cards phase now") else Right(())
       activePlayer <- getPlayer(game, game.activePlayerIndex)
       _ <-
         if (!activePlayer.cards.contains(cardToLeft) || !activePlayer.cards.contains(cardToRight))
           Left("Player's hand does not contain picked cards")
-        else Right()
+        else Right(())
       playerOnLeft <- getPlayer(game, game.activePlayerIndex.next)
       playerOnRight <- getPlayer(game, game.activePlayerIndex.previous)
     } yield {
@@ -156,11 +156,11 @@ object Actions {
 
   def playCard(game: Game, card: Card): Either[String, Game] = {
     for {
-      _ <- if (game.phase != PlayCards) Left("Cannot play cards. No play-cards phase now") else Right()
+      _ <- if (game.phase != PlayCards) Left("Cannot play cards. No play-cards phase now") else Right(())
       activePlayer <- getPlayer(game, game.activePlayerIndex)
-      _ <- if (!activePlayer.cards.contains(card)) Left("Player's hand does not contain picked card") else Right()
+      _ <- if (!activePlayer.cards.contains(card)) Left("Player's hand does not contain picked card") else Right(())
       cardsAllowedToPlay = getCardsAllowedToPlay(activePlayer.cards, game.requiredSuit)
-      _ <- if (!cardsAllowedToPlay.contains(card)) Left("Not allowed to play this card") else Right()
+      _ <- if (!cardsAllowedToPlay.contains(card)) Left("Not allowed to play this card") else Right(())
     } yield {
 
       val newCardsOnBoard = game.cardsOnBoard :+ card

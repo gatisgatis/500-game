@@ -64,7 +64,7 @@ object Main extends App {
               case PassCards =>
                 val inputSplit = input.split(" ")
                 gameEither = for {
-                  _ <- if (inputSplit.length == 2) Right() else Left("Wrong Input as 2 cards")
+                  _ <- if (inputSplit.length == 2) Right(()) else Left("Wrong Input as 2 cards")
                   cardLeft <- Card.fromString(inputSplit(0)).toRight("Card Left invalid")
                   cardRight <- Card.fromString(inputSplit(1)).toRight("Card Right invalid")
                   newRound <- Actions.passCards(game, cardLeft, cardRight)
