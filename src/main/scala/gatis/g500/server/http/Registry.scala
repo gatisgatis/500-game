@@ -7,6 +7,11 @@ import cats.syntax.all.*
 import main.{Deck, Game, PlayerIndex}
 import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 
+import io.circe._
+import io.circe.Decoder.Result
+import io.circe.generic.JsonCodec
+import io.circe.syntax._
+
 import scala.collection.concurrent.TrieMap
 import scala.util.Random
 
@@ -31,7 +36,33 @@ class Registry[F[_]: Applicative] {
 
   val playersList: ListBuffer[Player[F]] = ListBuffer.empty
 
+  def playersListJson: Json =
+    Json.obj(
+      "type" -> "playersList".asJson,
+      "list" ->
+        playersList.map { p =>
+          Json.obj(
+            "name" -> p.name.value.asJson,
+            "isOnline" -> p.isOnline.asJson,
+            "tableId" -> (if (p.tableId == TableId("")) Json.Null else p.tableId.value.asJson),
+          )
+        }.asJson,
+    )
+
   val tablesMap: TrieMap[TableId, Table[F]] = TrieMap.empty
+
+  def tablesJson: Json = Json.obj(
+    "type" -> Json.fromString("tablesList"),
+    "list" -> tablesMap.map { kv =>
+      val (_, t) = kv
+      Json.obj(
+        "id" -> t.id.value.asJson,
+        "players" -> t.players.map { p =>
+          p.player.name.value.asJson
+        }.asJson,
+      )
+    }.asJson,
+  )
 
   def updatePlayersList(name: PlayerName, toClient: String => F[Unit]): F[Unit] = {
     val index = playersList.indexWhere(_.name == name)

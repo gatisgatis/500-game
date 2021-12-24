@@ -43,20 +43,9 @@ object Server {
     import dsl.*
     val service: HttpRoutes[F] = HttpRoutes.of[F] {
 
-      case GET -> Root / "players" =>
-        // parse to json
-        Ok(registry.playersList.map { p =>
-          val onlineStatus = if (p.isOnline) "ONLINE" else "OFFLINE"
-          val table = if (p.tableId.value != "") s"${p.tableId}" else "not-playing-now"
-          s"${p.name} $onlineStatus $table"
-        })
+      case GET -> Root / "players" => Ok(registry.playersListJson)
 
-      case GET -> Root / "tables" =>
-        Ok(registry.tablesMap.map { t =>
-          val playersAsString =
-            t._2.players.foldLeft("")((acc, cur) => s"$acc${cur.player.name} (${cur.playerIndex}), ")
-          s"${t._1} - $playersAsString"
-        })
+      case GET -> Root / "tables" => Ok(registry.tablesJson)
 
       case req @ POST -> Root / "test-post-route" =>
         req.as[String].flatMap(body => Ok(s"Test $body"))
