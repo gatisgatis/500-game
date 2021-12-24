@@ -53,7 +53,8 @@ object Server {
 
       case GET -> Root / "tables" =>
         Ok(registry.tablesMap.map { t =>
-          val playersAsString = t._2.players.foldLeft("")((acc, cur) => s"$acc${cur.name}, ")
+          val playersAsString =
+            t._2.players.foldLeft("")((acc, cur) => s"$acc${cur.player.name} (${cur.playerIndex}), ")
           s"${t._1} - $playersAsString"
         })
 

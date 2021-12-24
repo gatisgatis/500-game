@@ -1,6 +1,6 @@
 package main
 
-final case class Player(cards: List[Card], bid: Int, points: Int) {
+final case class Player(cards: List[Card], bid: Int, points: Int, playerIndex: PlayerIndex) {
   private def cardsSorted: List[Card] = (for {
     s <- Suit.all
     sameSuitCards = cards.filter(_.suit == s)

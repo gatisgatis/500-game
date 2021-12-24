@@ -4,6 +4,8 @@ import cats.Applicative
 
 import scala.collection.mutable.ListBuffer
 import cats.syntax.all.*
+import main.{Deck, Game, PlayerIndex}
+import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 
 import scala.collection.concurrent.TrieMap
 import scala.util.Random
@@ -18,7 +20,12 @@ final case class PlayerName(value: String) extends AnyVal {
 
 final case class Player[F[_]](name: PlayerName, tableId: TableId, toClient: String => F[Unit], isOnline: Boolean)
 
-final case class Table[F[_]](players: List[Player[F]], id: TableId, game: String)
+final case class PlayerInfo[F[_]](player: Player[F], playerIndex: PlayerIndex)
+
+final case class Table[F[_]](players: List[PlayerInfo[F]], id: TableId, game: String) {
+  def getPlayerInfoFromIndex(playerIndex: PlayerIndex): PlayerInfo[F] =
+    players.find(_.playerIndex == playerIndex).get
+}
 
 class Registry[F[_]: Applicative] {
 
@@ -54,7 +61,7 @@ class Registry[F[_]: Applicative] {
         playersList.find(_.name == playerName) match {
           case None => s"$playerName not found in players list".pure[F]
           case Some(p) =>
-            tablesMap.put(tableId, Table(List(p), tableId, game = "todo"))
+            tablesMap.put(tableId, Table(List(PlayerInfo(p, FirstPlayer)), tableId, game = "todo"))
             val index = playersList.indexWhere(_.name == playerName)
             playersList(index) = playersList(index).copy(tableId = tableId)
             playersList
@@ -71,21 +78,46 @@ class Registry[F[_]: Applicative] {
     tablesMap.get(tableId) match {
       case Some(table) if table.players.length >= 3 => "Table full".pure[F] // notify player why he could not join
       case Some(table) =>
-        if (table.players.exists(_.name == playerName)) {
+        if (table.players.exists(_.player.name == playerName)) {
           s"${playerName} already at table $tableId".pure[F]
         } else {
           playersList.find(_.name == playerName) match {
             case None => s"$playerName not found in players list".pure[F]
             case Some(p) =>
-              // TODO. Not allow to join table if player already joined to other table / leave from other table before joining new one?
-              tablesMap.update(tableId, table.copy(players = table.players :+ p))
+              // if player already at other table, leave it before joining this one
+              leaveTable(p.tableId, p.name)
+              // update tablesMap
+              val pi: PlayerIndex = if (table.players.size == 1) SecondPlayer else ThirdPlayer
+              val t = table.copy(players = table.players :+ PlayerInfo(p, pi))
+              tablesMap.update(tableId, t)
+
+              // update player at playerList
               val index = playersList.indexWhere(_.name == playerName)
               playersList(index) = playersList(index).copy(tableId = tableId)
-              // Send all other players at this table msg about new player joining
-              table.players
-                .map(_.toClient(s"${playerName} joined this table"))
-                .sequence
-                .map(_ => s"$playerName joined table $tableId")
+
+              if (t.players.size == 3) {
+                // If 3 players joined, then should init game
+                val game = Game.init(1, FirstPlayer, Nil, Deck.shuffle)
+
+                // Send player specific game object to all players at table
+                val firstPlayerCards = game.players(FirstPlayer).cards.toString()
+                val secondPlayerCards = game.players(SecondPlayer).cards.toString()
+                val thirdPlayerCards = game.players(ThirdPlayer).cards.toString()
+
+                val msg1 = t.getPlayerInfoFromIndex(FirstPlayer).player.toClient(firstPlayerCards)
+                val msg2 = t.getPlayerInfoFromIndex(SecondPlayer).player.toClient(secondPlayerCards)
+                val msg3 = t.getPlayerInfoFromIndex(ThirdPlayer).player.toClient(thirdPlayerCards)
+
+                List(msg1, msg2, msg3).sequence *> table.players
+                  .map(_.player.toClient("sending cards now"))
+                  .sequence *> "Ok".pure[F]
+              } else {
+                // Send all other players at this table msg about new player joining
+                table.players
+                  .map(_.player.toClient(s"${playerName} joined this table"))
+                  .sequence
+                  .map(_ => s"$playerName joined table $tableId")
+              }
           }
         }
       case _ => "Table not found".pure[F]
@@ -94,8 +126,8 @@ class Registry[F[_]: Applicative] {
   def leaveTable(tableId: TableId, playerName: PlayerName): F[String] =
     tablesMap.get(tableId) match {
       case Some(table) =>
-        if (table.players.exists(_.name == playerName)) {
-          val ps = table.players.filter(_.name != playerName)
+        if (table.players.exists(_.player.name == playerName)) {
+          val ps = table.players.filter(_.player.name != playerName)
           val index = playersList.indexWhere(_.name == playerName)
           playersList(index) = playersList(index).copy(tableId = TableId(""))
           if (ps.size.isEmpty) {
@@ -104,7 +136,9 @@ class Registry[F[_]: Applicative] {
           } else {
             tablesMap.update(tableId, table.copy(players = ps))
             // Send all other players at this table msg about player leaving
-            ps.map(_.toClient(s"$playerName left this table")).sequence.map(_ => s"$playerName left table $tableId")
+            ps.map(_.player.toClient(s"$playerName left this table"))
+              .sequence
+              .map(_ => s"$playerName left table $tableId")
           }
 
         } else {

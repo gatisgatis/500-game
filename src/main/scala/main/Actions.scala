@@ -1,16 +1,10 @@
 package main
 
-import main.Phase.{Bidding, PassCards, PlayCards, RoundEnd, TakeCards}
+import main.Phase.{Bidding, PassCards, PlayCards, TakeCards}
 import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 import main.Rank.{King, Queen}
 
 object Actions {
-
-  private def getPlayer(game: Game, playerIndex: PlayerIndex): Either[String, Player] =
-    game.players.get(playerIndex) match {
-      case Some(player) => Right(player)
-      case None => Left(s"No Player with index '$playerIndex' found")
-    }
 
   private def checkForInvalidBid(game: Game, bid: Int): Either[String, Unit] =
     if (bid >= 0 && bid % 5 != 0) Left("Invalid bid. Bid must be with a step of 5")
@@ -23,24 +17,20 @@ object Actions {
   private def nextToBidPlayerIndex(game: Game, bid: Int): Either[String, PlayerIndex] = {
     val nextIndex = game.activePlayerIndex.next
     val prevIndex = game.activePlayerIndex.previous
+    val nextPlayer = game.players(nextIndex)
+    val prevPlayer = game.players(prevIndex)
 
-    for {
-      nextPlayer <- getPlayer(game, nextIndex)
-      prevPlayer <- getPlayer(game, prevIndex)
-      next <- {
-        if (nextPlayer.bid >= 0) Right(nextIndex)
-        else if (prevPlayer.bid >= 0) Right(prevIndex)
-        else if (bid >= 0) Right(game.activePlayerIndex)
-        else Left("All players have passed")
-      }
-    } yield next
+    if (nextPlayer.bid >= 0) Right(nextIndex)
+    else if (prevPlayer.bid >= 0) Right(prevIndex)
+    else if (bid >= 0) Right(game.activePlayerIndex)
+    else Left("All players have passed")
+
   }
 
   def makeBid(game: Game, bid: Int): Either[String, Game] =
     for {
-      // TODO. Is this the right way to do it?
       _ <- if (game.phase != Bidding) Left("Cannot make a bid. No bidding phase now") else Right(())
-      player <- getPlayer(game, game.activePlayerIndex)
+      player = game.players(game.activePlayerIndex)
       _ <- if (player.bid >= 0) Right(()) else Left(s"${game.activePlayerIndex} has already passed this round")
       playerGamePoints = game.results.lastOption match {
         case None => 0
@@ -85,31 +75,30 @@ object Actions {
   def takeCards(game: Game): Either[String, Game] =
     if (game.phase != TakeCards) Left("Cannot take cards. No take-cards phase now.")
     else {
-      getPlayer(game, game.activePlayerIndex).flatMap { player =>
-        val newCards = player.cards ::: game.cardsToTake
-        val newPlayer = player.copy(cards = newCards)
-        val newPlayers = game.players.updated(game.activePlayerIndex, newPlayer)
+      val player = game.players(game.activePlayerIndex)
+      val newCards = player.cards ::: game.cardsToTake
+      val newPlayer = player.copy(cards = newCards)
+      val newPlayers = game.players.updated(game.activePlayerIndex, newPlayer)
 
-        // Info msg about what happened this turn
-        val msg =
-          s"ACTION: ${game.activePlayerIndex} took ${game.cardsToTake.foldLeft("")((acc, cur) => acc + cur.toString + " ")} from the board"
-        println(msg)
-        println()
+      // Info msg about what happened this turn
+      val msg =
+        s"ACTION: ${game.activePlayerIndex} took ${game.cardsToTake.foldLeft("")((acc, cur) => acc + cur.toString + " ")} from the board"
+      println(msg)
+      println()
 
-        Right(game.copy(players = newPlayers, cardsToTake = Nil, phase = game.phase.nextPhase))
-      }
+      Right(game.copy(players = newPlayers, cardsToTake = Nil, phase = game.phase.nextPhase))
     }
 
   def passCards(game: Game, cardToLeft: Card, cardToRight: Card): Either[String, Game] =
     for {
       _ <- if (game.phase != PassCards) Left("Cannot pass cards. No pass-cards phase now") else Right(())
-      activePlayer <- getPlayer(game, game.activePlayerIndex)
+      activePlayer = game.players(game.activePlayerIndex)
       _ <-
         if (!activePlayer.cards.contains(cardToLeft) || !activePlayer.cards.contains(cardToRight))
           Left("Player's hand does not contain picked cards")
         else Right(())
-      playerOnLeft <- getPlayer(game, game.activePlayerIndex.next)
-      playerOnRight <- getPlayer(game, game.activePlayerIndex.previous)
+      playerOnLeft = game.players(game.activePlayerIndex.next)
+      playerOnRight = game.players(game.activePlayerIndex.previous)
     } yield {
       val newCardsActivePlayer = activePlayer.cards.filter(card => card != cardToRight && card != cardToLeft)
       val newActivePlayer = activePlayer.copy(cards = newCardsActivePlayer)
@@ -157,7 +146,7 @@ object Actions {
   def playCard(game: Game, card: Card): Either[String, Game] = {
     for {
       _ <- if (game.phase != PlayCards) Left("Cannot play cards. No play-cards phase now") else Right(())
-      activePlayer <- getPlayer(game, game.activePlayerIndex)
+      activePlayer = game.players(game.activePlayerIndex)
       _ <- if (!activePlayer.cards.contains(card)) Left("Player's hand does not contain picked card") else Right(())
       cardsAllowedToPlay = getCardsAllowedToPlay(activePlayer.cards, game.requiredSuit)
       _ <- if (!cardsAllowedToPlay.contains(card)) Left("Not allowed to play this card") else Right(())
@@ -209,7 +198,7 @@ object Actions {
 
             // Info msg about what happened this turn
             val msg: String =
-              s"ACTION: ${game.activePlayerIndex} played $card. ${playerIndexTakingTrick} took down a trick of " +
+              s"ACTION: ${game.activePlayerIndex} played $card. $playerIndexTakingTrick took down a trick of " +
                 s"${newCardsOnBoard.foldLeft("")((acc, cur) => acc + cur.toString + " ")}and collected $pointsFromTrick points"
             println(msg)
             println()
@@ -268,7 +257,7 @@ object Actions {
           val optionalMsgAboutBonusPoints =
             if (pointsFromMarriage > 0) s" and announced marriage collecting additional $pointsFromMarriage points"
             else ""
-          val msg: String = s"ACTION: ${game.activePlayerIndex} played ${card}${optionalMsgAboutBonusPoints}"
+          val msg: String = s"ACTION: ${game.activePlayerIndex} played $card$optionalMsgAboutBonusPoints"
           println(msg)
           println()
 
@@ -350,11 +339,11 @@ object Actions {
     // Info msg about what happened this turn
     val msg = playerIndexWinningBid match {
       case FirstPlayer =>
-        s"${FirstPlayer} played a game (${winningBid}) and ${if (firstPlayerRoundPoints > 0) "won" else "lost"}"
+        s"$FirstPlayer played a game ($winningBid) and ${if (firstPlayerRoundPoints > 0) "won" else "lost"}"
       case SecondPlayer =>
-        s"${SecondPlayer} played a game (${winningBid}) and ${if (secondPlayerRoundPoints > 0) "won" else "lost"}"
+        s"$SecondPlayer played a game ($winningBid) and ${if (secondPlayerRoundPoints > 0) "won" else "lost"}"
       case ThirdPlayer =>
-        s"${ThirdPlayer} played a game (${winningBid}) and ${if (thirdPlayerRoundPoints > 0) "won" else "lost"}"
+        s"$ThirdPlayer played a game ($winningBid) and ${if (thirdPlayerRoundPoints > 0) "won" else "lost"}"
     }
     println(msg)
     println()
