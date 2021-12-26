@@ -4,13 +4,14 @@ import cats.Applicative
 
 import scala.collection.mutable.ListBuffer
 import cats.syntax.all.*
-import main.{Deck, Game, PlayerIndex}
+import main.{Actions, Card, Deck, Game, PlayerIndex}
 import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 import io.circe.*
 import io.circe.Decoder.Result
 import io.circe.generic.JsonCodec
 import io.circe.syntax.*
-import main.Phase.{Bidding, TakeCards}
+import main.Main.{gameEither, resultsString}
+import main.Phase.{Bidding, GameEnd, PassCards, PlayCards, RoundEnd, TakeCards}
 
 import scala.collection.concurrent.TrieMap
 import scala.util.Random
@@ -270,6 +271,66 @@ class Registry[F[_]: Applicative] {
 
         } else {
           s"$playerName not at this table".pure[F]
+        }
+      case _ => "Table not found".pure[F]
+    }
+
+  def playTurn(tableId: TableId, playerName: PlayerName, input: String): F[String] =
+    // play_turn A1F324124 50
+
+    tablesMap.get(tableId) match {
+      case Some(table) =>
+        table.game match {
+          case Some(game) =>
+            val ply = table.players.find(_.player.name == playerName).get
+            if (ply.playerIndex != game.activePlayerIndex) {
+              List(ply.player.toClient(generalInfoJson("NOT YOUR TURN"))).sequence.map(_ =>
+                "Not players turn",
+              ) // TODO. No List needed
+            } else {
+              // HERE ALL THE GAME MAGIC HAPPENS
+              val newGame = game.phase match {
+                case Bidding =>
+                  for {
+                    bid <- input.toIntOption.toRight("Invalid bid")
+                    newRound <- Actions.makeBid(game, bid)
+                  } yield newRound
+                case TakeCards => Actions.takeCards(game)
+                case PassCards =>
+                  val inputSplit = input.split(" ")
+                  for {
+                    _ <- if (inputSplit.length == 2) Right(()) else Left("Wrong Input as 2 cards")
+                    cardLeft <- Card.fromString(inputSplit(0)).toRight("Card Left invalid")
+                    cardRight <- Card.fromString(inputSplit(1)).toRight("Card Right invalid")
+                    newRound <- Actions.passCards(game, cardLeft, cardRight)
+                  } yield newRound
+                case PlayCards =>
+                  for {
+                    card <- Card.fromString(input).toRight("Invalid card typed")
+                    newRound <- Actions.playCard(game, card)
+                  } yield newRound
+                case RoundEnd =>
+                  for {
+                    newGame <- Actions.updateGameAfterRound(game)
+                  } yield newGame
+                case GameEnd => Left("Game End") // TODO. What Now?
+              }
+
+              println(newGame)
+
+              newGame match {
+                case Right(value) =>
+                  val t = table.copy(game = Some(value))
+                  tablesMap.update(tableId, t)
+                  t.players
+                    .map(plyr => plyr.player.toClient(tableJson(t, plyr.playerIndex)))
+                    .sequence *> s"$playerName played a turn".pure[F]
+                case Left(value) =>
+                  ply.player.toClient(generalInfoJson(value))
+                  value.pure[F]
+              }
+            }
+          case _ => "Game not found".pure[F]
         }
       case _ => "Table not found".pure[F]
     }

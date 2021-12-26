@@ -58,6 +58,7 @@ object Server {
               case OpenTable => registry.addTable(PlayerName(playerName)).void
               case JoinTable(tableId) => registry.joinTable(tableId, PlayerName(playerName)).void
               case LeaveTable(tableId) => registry.leaveTable(tableId, PlayerName(playerName)).void
+              case PlayTurn(tableId, input) => registry.playTurn(tableId, PlayerName(playerName), input).void
               case _ => Sync[F].delay(println(s"INVALID INPUT - $playerName: $t"))
             }
           case Close(_) => registry.disconnect(PlayerName(playerName)).void // change status to OFFLINE
