@@ -15,18 +15,14 @@ object Command {
 object WsMsgParser {
   import Command._
 
-  def parse(input: String): Command = {
-    val parts = input.split(" ")
-    val base = parts(0)
-    // TODO. use regex pattern matching to extract base and arguments
-    base match {
-      case "join_table" => JoinTable(TableId(parts(1))) // "join_table 5s2S4FAD2SF"
-      case "leave_table" => LeaveTable(TableId(parts(1))) // "leave_table 5s2S4FAD2SF"
+  def parse(input: String): Command =
+    input match {
+      case s"join_table ${tableId}" => JoinTable(TableId(tableId)) // "join_table 5s2S4FAD2SF"
+      case s"leave_table ${tableId}" => LeaveTable(TableId(tableId)) // "leave_table 5s2S4FAD2SF"
       case "open_table" => OpenTable // "open_table"
-      case "play_turn" =>
-        PlayTurn(TableId(parts(1)), parts(2)) // "play_turn 5s2S4FAD2SF 100" , "play_turn 5s2S4FAD2SF Ad"
+      case s"play_turn ${tableId} ${rest}" =>
+        PlayTurn(TableId(tableId), rest) // "play_turn 5s2S4FAD2SF 100" , "play_turn 5s2S4FAD2SF Ad"
       case _ => DoNothing
     }
-  }
 
 }

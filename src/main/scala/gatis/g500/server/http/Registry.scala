@@ -234,8 +234,11 @@ class Registry[F[_]: Applicative] {
                 val tt = t.copy(game = Some(game))
                 tablesMap.update(tableId, tt)
 
-                // send all players at the table game object
-                t.players.map(ply => ply.player.toClient(tableJson(tt, ply.playerIndex))).sequence.map(_ => "ok")
+                t.players
+                  .map(_.player.toClient(generalInfoJson(s"$playerName joined your table")))
+                  .sequence *> t.players
+                  .map(ply => ply.player.toClient(tableJson(tt, ply.playerIndex)))
+                  .sequence *> s"$playerName joined table $tableId".pure[F]
               } else {
                 // message and tableInfo object
                 table.players
@@ -276,15 +279,13 @@ class Registry[F[_]: Applicative] {
     }
 
   def playTurn(tableId: TableId, playerName: PlayerName, input: String): F[String] =
-    // play_turn A1F324124 50
-
     tablesMap.get(tableId) match {
       case Some(table) =>
         table.game match {
           case Some(game) =>
             val ply = table.players.find(_.player.name == playerName).get
             if (ply.playerIndex != game.activePlayerIndex) {
-              List(ply.player.toClient(generalInfoJson("NOT YOUR TURN"))).sequence.map(_ =>
+              List(ply.player.toClient(generalInfoJson("It's not your turn!"))).sequence.map(_ =>
                 "Not players turn",
               ) // TODO. No List needed
             } else {
@@ -322,6 +323,7 @@ class Registry[F[_]: Applicative] {
                 case Right(value) =>
                   val t = table.copy(game = Some(value))
                   tablesMap.update(tableId, t)
+                  // TODO. send general msg about what just happened
                   t.players
                     .map(plyr => plyr.player.toClient(tableJson(t, plyr.playerIndex)))
                     .sequence *> s"$playerName played a turn".pure[F]
