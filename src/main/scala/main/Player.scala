@@ -1,7 +1,7 @@
 package main
 
 final case class Player(cards: List[Card], bid: Int, points: Int, playerIndex: PlayerIndex) {
-  private def cardsSorted: List[Card] = (for {
+  def cardsSorted: List[Card] = (for {
     s <- Suit.all
     sameSuitCards = cards.filter(_.suit == s)
     sorted = sameSuitCards.sortWith(_.value > _.value)

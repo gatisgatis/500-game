@@ -43,9 +43,9 @@ object Server {
     import dsl.*
     val service: HttpRoutes[F] = HttpRoutes.of[F] {
 
-      case GET -> Root / "players" => Ok(registry.playersListJson)
+      case GET -> Root / "players" => Ok(registry.playersListJson.toString)
 
-      case GET -> Root / "tables" => Ok(registry.tablesJson)
+      case GET -> Root / "tables" => Ok(registry.tablesJson.toString)
 
       case req @ POST -> Root / "test-post-route" =>
         req.as[String].flatMap(body => Ok(s"Test $body"))

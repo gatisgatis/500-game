@@ -3,6 +3,7 @@ package main
 case class Card(suit: Suit, rank: Rank) {
   def value: Int = rank.value
   override def toString: String = suit.color + rank.toString + suit.toString + Console.RESET
+  def toStringNormal: String = rank.toString + suit.toString
 }
 
 import Suit._

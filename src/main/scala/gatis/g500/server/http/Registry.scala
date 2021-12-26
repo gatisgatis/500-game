@@ -6,11 +6,11 @@ import scala.collection.mutable.ListBuffer
 import cats.syntax.all.*
 import main.{Deck, Game, PlayerIndex}
 import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
-
-import io.circe._
+import io.circe.*
 import io.circe.Decoder.Result
 import io.circe.generic.JsonCodec
-import io.circe.syntax._
+import io.circe.syntax.*
+import main.Phase.{Bidding, TakeCards}
 
 import scala.collection.concurrent.TrieMap
 import scala.util.Random
@@ -27,7 +27,7 @@ final case class Player[F[_]](name: PlayerName, tableId: TableId, toClient: Stri
 
 final case class PlayerInfo[F[_]](player: Player[F], playerIndex: PlayerIndex)
 
-final case class Table[F[_]](players: List[PlayerInfo[F]], id: TableId, game: String) {
+final case class Table[F[_]](players: List[PlayerInfo[F]], id: TableId, game: Option[Game]) {
   def getPlayerInfoFromIndex(playerIndex: PlayerIndex): PlayerInfo[F] =
     players.find(_.playerIndex == playerIndex).get
 }
@@ -52,7 +52,7 @@ class Registry[F[_]: Applicative] {
   val tablesMap: TrieMap[TableId, Table[F]] = TrieMap.empty
 
   def tablesJson: Json = Json.obj(
-    "type" -> Json.fromString("tablesList"),
+    "type" -> "tablesList".asJson,
     "list" -> tablesMap.map { kv =>
       val (_, t) = kv
       Json.obj(
@@ -64,24 +64,119 @@ class Registry[F[_]: Applicative] {
     }.asJson,
   )
 
+  def generalInfoJson(info: String): String = Json
+    .obj(
+      "type" -> "generalInfo".asJson,
+      "info" -> info.asJson,
+    )
+    .toString
+
+  def tableJson(table: Table[F], playerIndex: PlayerIndex): String =
+    Json
+      .obj(
+        "type" -> "tableInfo".asJson,
+        "tableId" -> table.id.value.asJson,
+        "gameInfo" -> (if (table.game.isDefined) gameObjectJson(table.game.get) else Json.Null),
+        "players" -> table.players.map { p =>
+          Json.obj(
+            "name" -> p.player.name.value.asJson,
+            "isOnline" -> p.player.isOnline.asJson,
+            "playerIndex" -> p.playerIndex.toString.asJson,
+            "cards" -> getCards(table, playerIndex, p.playerIndex),
+            "cardsFromTable" -> Json.Null, // TODO. send these only when take cards phase. maybe not needed
+            "cardFromBidWinner" -> Json.Null, // TODO. send it only when pass cards phase. maybe not needed
+            "bid" -> 0.asJson, // TODO. send this only when bidding phase
+            "trickCount" -> 0.asJson, // TODO.
+            "pointsCollected" -> 0.asJson, // TODO. send this only when round end
+          )
+        }.asJson,
+      )
+      .toString
+
+  def getCards(table: Table[F], playerIndexReceivingInfo: PlayerIndex, playerIndexInfoAbout: PlayerIndex): Json =
+    table.game match {
+      case None => Json.Null
+      case Some(game) =>
+        if (playerIndexReceivingInfo == playerIndexInfoAbout)
+          game
+            .players(playerIndexInfoAbout)
+            .cardsSorted
+            .foldLeft("")((acc, cur) => s"$acc${cur.toStringNormal} ")
+            .trim
+            .asJson
+        else
+          game
+            .players(playerIndexInfoAbout)
+            .cardsSorted
+            .foldLeft("")((acc, cur) => s"${acc}X ")
+            .trim
+            .asJson
+    }
+
+  def gameObjectJson(game: Game): Json =
+    Json
+      .obj(
+        "type" -> "gameInfo".asJson,
+        "roundNumber" -> game.roundNumber.asJson,
+        "phase" -> game.phase.toString.asJson,
+        "activePlayerIndex" -> game.activePlayerIndex.toString.asJson,
+        "highestBid" -> game.highestBid.asJson,
+        "bidWinner" -> (if (game.biddingWinnerIndex.isDefined) game.biddingWinnerIndex.get.toString.asJson
+                        else Json.Null),
+        "cardsPlayed" -> game.cardsOnBoard.foldLeft("")((acc, cur) => s"$acc${cur.toStringNormal} ").trim.asJson,
+        "trumpSuit" -> (if (game.trump.isDefined) game.trump.get.toString.asJson else Json.Null),
+      )
+
   def updatePlayersList(name: PlayerName, toClient: String => F[Unit]): F[Unit] = {
     val index = playersList.indexWhere(_.name == name)
     if (index >= 0) {
-      playersList(index) = playersList(index).copy(isOnline = true)
-      // TODO. send msg to players on table if player was on table
-      playersList.map(_.toClient(s"$name back online")).toList.sequence.map(_ => ()) // maybe not needed
-      //      ().pure[F]
+      val p = playersList(index).copy(isOnline = true)
+      playersList(index) = p
+      val tId = p.tableId
+      // update tablesMap, message player's table about player being back online and send new tableInfo object
+      if (tId.value != "") {
+        val t = tablesMap(tId)
+        val i = t.players.indexWhere(_.player.name == name)
+        val pi = t.players(i).copy(player = p)
+        val ps: List[PlayerInfo[F]] = t.players.updated(i, pi)
+        tablesMap.update(tId, t.copy(players = ps))
+        t.players
+          .map(_.player.toClient(generalInfoJson(s"${p.name} is back online")))
+          .sequence *> t.players
+          .map(ply => ply.player.toClient(tableJson(tablesMap(tId), ply.playerIndex)))
+          .sequence *> ()
+          .pure[F]
+      } else {
+        ().pure[F]
+      }
     } else {
       playersList.append(Player(name, tableId = TableId(""), toClient, isOnline = true))
-      playersList.map(_.toClient(s"$name joined")).toList.sequence.map(_ => ()) //  maybe not needed
+      // message all players about new player joining
+      playersList.map(_.toClient(generalInfoJson(s"$name joined the site"))).toList.sequence.map(_ => ())
     }
   }
 
   def disconnect(name: PlayerName): F[Unit] = {
     val index = playersList.indexWhere(_.name == name)
-    playersList(index) = playersList(index).copy(isOnline = false)
-    // TODO. send msg to players on table if player was on table
-    playersList.map(_.toClient(s"$name offline")).toList.sequence.map(_ => ()) // maybe not needed
+    val p = playersList(index).copy(isOnline = false)
+    playersList(index) = p
+    // update tablesMap, message player's table about player going offline and send new tableInfo object
+    val tId = p.tableId
+    if (tId.value != "") {
+      val t = tablesMap(tId)
+      val i = t.players.indexWhere(_.player.name == name)
+      val pi = t.players(i).copy(player = p)
+      val ps: List[PlayerInfo[F]] = t.players.updated(i, pi)
+      tablesMap.update(tId, t.copy(players = ps))
+      t.players
+        .map(_.player.toClient(generalInfoJson(s"${p.name} went offline")))
+        .sequence *> t.players
+        .map(ply => ply.player.toClient(tableJson(tablesMap(tId), ply.playerIndex)))
+        .sequence *> ()
+        .pure[F]
+    } else {
+      ().pure[F]
+    }
   }
 
   def addTable(playerName: PlayerName): F[String] = {
@@ -92,11 +187,14 @@ class Registry[F[_]: Applicative] {
         playersList.find(_.name == playerName) match {
           case None => s"$playerName not found in players list".pure[F]
           case Some(p) =>
-            tablesMap.put(tableId, Table(List(PlayerInfo(p, FirstPlayer)), tableId, game = "todo"))
+            // if player already at other table, leave it before joining this one
+            // TODO. Not sending leaving table messages. why?
+            leaveTable(p.tableId, p.name)
+            tablesMap.put(tableId, Table(List(PlayerInfo(p, FirstPlayer)), tableId, game = None))
             val index = playersList.indexWhere(_.name == playerName)
-            playersList(index) = playersList(index).copy(tableId = tableId)
+            playersList(index) = p.copy(tableId = tableId)
             playersList
-              .map(_.toClient(s"new table opened $tableId"))
+              .map(_.toClient(generalInfoJson(s"New table $tableId just opened")))
               .toList
               .sequence
               .map(_ => s"Table crated. ID: $tableId") // maybe not needed
@@ -107,10 +205,11 @@ class Registry[F[_]: Applicative] {
 
   def joinTable(tableId: TableId, playerName: PlayerName): F[String] =
     tablesMap.get(tableId) match {
-      case Some(table) if table.players.length >= 3 => "Table full".pure[F] // notify player why he could not join
+      case Some(table) if table.players.length >= 3 =>
+        "Table full".pure[F] // TODO. message player why he could not join maybe?
       case Some(table) =>
         if (table.players.exists(_.player.name == playerName)) {
-          s"${playerName} already at table $tableId".pure[F]
+          s"$playerName already at table $tableId".pure[F]
         } else {
           playersList.find(_.name == playerName) match {
             case None => s"$playerName not found in players list".pure[F]
@@ -127,27 +226,22 @@ class Registry[F[_]: Applicative] {
               playersList(index) = playersList(index).copy(tableId = tableId)
 
               if (t.players.size == 3) {
-                // If 3 players joined, then should init game
+                // INIT GAME
                 val game = Game.init(1, FirstPlayer, Nil, Deck.shuffle)
 
-                // Send player specific game object to all players at table
-                val firstPlayerCards = game.players(FirstPlayer).cards.toString()
-                val secondPlayerCards = game.players(SecondPlayer).cards.toString()
-                val thirdPlayerCards = game.players(ThirdPlayer).cards.toString()
+                // update tablesMap
+                val tt = t.copy(game = Some(game))
+                tablesMap.update(tableId, tt)
 
-                val msg1 = t.getPlayerInfoFromIndex(FirstPlayer).player.toClient(firstPlayerCards)
-                val msg2 = t.getPlayerInfoFromIndex(SecondPlayer).player.toClient(secondPlayerCards)
-                val msg3 = t.getPlayerInfoFromIndex(ThirdPlayer).player.toClient(thirdPlayerCards)
-
-                List(msg1, msg2, msg3).sequence *> table.players
-                  .map(_.player.toClient("sending cards now"))
-                  .sequence *> "Ok".pure[F]
+                // send all players at the table game object
+                t.players.map(ply => ply.player.toClient(tableJson(tt, ply.playerIndex))).sequence.map(_ => "ok")
               } else {
-                // Send all other players at this table msg about new player joining
+                // message and tableInfo object
                 table.players
-                  .map(_.player.toClient(s"${playerName} joined this table"))
-                  .sequence
-                  .map(_ => s"$playerName joined table $tableId")
+                  .map(_.player.toClient(generalInfoJson(s"$playerName joined your table")))
+                  .sequence *> t.players
+                  .map(ply => ply.player.toClient(tableJson(t, ply.playerIndex)))
+                  .sequence *> s"$playerName joined table $tableId".pure[F]
               }
           }
         }
@@ -163,13 +257,15 @@ class Registry[F[_]: Applicative] {
           playersList(index) = playersList(index).copy(tableId = TableId(""))
           if (ps.size.isEmpty) {
             tablesMap.remove(tableId)
-            "Info".pure[F]
+            s"Table ${tableId.value} removed".pure[F]
           } else {
-            tablesMap.update(tableId, table.copy(players = ps))
-            // Send all other players at this table msg about player leaving
-            ps.map(_.player.toClient(s"$playerName left this table"))
-              .sequence
-              .map(_ => s"$playerName left table $tableId")
+            tablesMap.update(tableId, table.copy(players = ps, game = None))
+            ps
+              .map(_.player.toClient(generalInfoJson(s"$playerName left your table")))
+              .sequence *> ps
+              .map(ply => ply.player.toClient(tableJson(tablesMap(tableId), ply.playerIndex)))
+              .sequence *> s"$playerName left table $tableId"
+              .pure[F]
           }
 
         } else {
