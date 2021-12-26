@@ -84,15 +84,35 @@ class Registry[F[_]: Applicative] {
             "isOnline" -> p.player.isOnline.asJson,
             "playerIndex" -> p.playerIndex.toString.asJson,
             "cards" -> getCards(table, playerIndex, p.playerIndex),
-            "cardsFromTable" -> Json.Null, // TODO. send these only when take cards phase. maybe not needed
-            "cardFromBidWinner" -> Json.Null, // TODO. send it only when pass cards phase. maybe not needed
-            "bid" -> 0.asJson, // TODO. send this only when bidding phase
-            "trickCount" -> 0.asJson, // TODO.
-            "pointsCollected" -> 0.asJson, // TODO. send this only when round end
+            "cardsFromTable" -> Json.Null, // TODO. send these only when take cards phase. just for better ui. maybe not needed.
+            "cardFromBidWinner" -> Json.Null, // TODO. send it only when pass cards phase. just for better ui. maybe not needed
+            "bid" -> getBid(table, p.playerIndex),
+            "trickCount" -> getTrickCount(table, p.playerIndex),
+            "pointsCollected" -> getPoints(table, p.playerIndex),
           )
         }.asJson,
       )
       .toString
+
+  def getPoints(table: Table[F], playerIndexInfoAbout: PlayerIndex): Json =
+    table.game match {
+      case None => Json.Null
+      case Some(game) =>
+        if (game.phase == RoundEnd) game.players(playerIndexInfoAbout).points.asJson else Json.Null
+    }
+
+  def getTrickCount(table: Table[F], playerIndexInfoAbout: PlayerIndex): Json =
+    table.game match {
+      case None => Json.Null
+      case Some(game) => game.players(playerIndexInfoAbout).trickCount.asJson
+    }
+
+  def getBid(table: Table[F], playerIndexInfoAbout: PlayerIndex): Json =
+    table.game match {
+      case None => Json.Null
+      case Some(game) =>
+        if (game.phase == Bidding) game.players(playerIndexInfoAbout).bid.asJson else Json.Null
+    }
 
   def getCards(table: Table[F], playerIndexReceivingInfo: PlayerIndex, playerIndexInfoAbout: PlayerIndex): Json =
     table.game match {

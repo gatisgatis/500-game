@@ -86,9 +86,9 @@ object Game {
   def init(roundNumber: Int, startPlayerIndex: PlayerIndex, results: List[Results], deck: List[Card]): Game = {
 
     val cardsToTake = deck.slice(0, 3)
-    val player1 = Player(deck.slice(3, 10), bid = 0, points = 0, FirstPlayer)
-    val player2 = Player(deck.slice(10, 17), bid = 0, points = 0, SecondPlayer)
-    val player3 = Player(deck.slice(17, 24), bid = 0, points = 0, ThirdPlayer)
+    val player1 = Player(deck.slice(3, 10), bid = 0, points = 0, FirstPlayer, trickCount = 0)
+    val player2 = Player(deck.slice(10, 17), bid = 0, points = 0, SecondPlayer, trickCount = 0)
+    val player3 = Player(deck.slice(17, 24), bid = 0, points = 0, ThirdPlayer, trickCount = 0)
     val players: Map[PlayerIndex, Player] = Map(FirstPlayer -> player1, SecondPlayer -> player2, ThirdPlayer -> player3)
     Game(
       cardsOnBoard = Nil,

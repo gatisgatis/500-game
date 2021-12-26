@@ -186,7 +186,10 @@ object Actions {
               else game.players(playerIndexTakingTrick)
             }
 
-            val newPlayerTakingTrick = playerTakingTrick.copy(points = playerTakingTrick.points + pointsFromTrick)
+            val newPlayerTakingTrick = playerTakingTrick.copy(
+              points = playerTakingTrick.points + pointsFromTrick,
+              trickCount = playerTakingTrick.trickCount + 1,
+            )
 
             // update players Map. Order matters
             val newPlayers = game.players
