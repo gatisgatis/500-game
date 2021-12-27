@@ -43,12 +43,19 @@ object Server {
     import dsl.*
     val service: HttpRoutes[F] = HttpRoutes.of[F] {
 
-      case GET -> Root / "players" => Ok(registry.playersListJson.toString)
+      case GET -> Root / "players" => Ok(registry.playersListJson)
 
-      case GET -> Root / "tables" => Ok(registry.tablesJson.toString)
+      case GET -> Root / "tables" => Ok(registry.tablesJson)
 
-      case req @ POST -> Root / "test-post-route" =>
-        req.as[String].flatMap(body => Ok(s"Test $body"))
+      case req @ POST -> Root / "login" =>
+        req
+          .as[String]
+          .flatMap { body =>
+            registry.playersList.find(_.name.value == body) match {
+              case Some(player) => if (player.isOnline) Ok(false) else Ok(true)
+              case _ => Ok(true)
+            }
+          }
 
       case GET -> Root / playerName / "ws" =>
         def fc: Pipe[F, WebSocketFrame, Unit] = _.evalMap {
