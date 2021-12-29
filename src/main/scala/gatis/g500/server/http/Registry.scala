@@ -251,7 +251,10 @@ class Registry[F[_]: Applicative] {
               // if player already at other table, leave it before joining this one
               leaveTable(p.tableId, p.name)
               // update tablesMap
-              val pi: PlayerIndex = if (table.players.size == 1) SecondPlayer else ThirdPlayer
+              val pi: PlayerIndex =
+                if (!table.players.exists(p => p.playerIndex == FirstPlayer)) FirstPlayer
+                else if (!table.players.exists(p => p.playerIndex == SecondPlayer)) SecondPlayer
+                else ThirdPlayer
               val t = table.copy(players = table.players :+ PlayerInfo(p, pi))
               tablesMap.update(tableId, t)
 
@@ -375,6 +378,7 @@ class Registry[F[_]: Applicative] {
             "isOnline" -> p.player.isOnline.asJson,
             "playerIndex" -> p.playerIndex.toString.asJson,
             "cards" -> getCards(table, playerIndex, p.playerIndex),
+            "playedCard" -> getPlayedCard(table, p.playerIndex),
             "cardsFromTable" -> Json.Null, // TODO. send these only when take cards phase. just for better ui. maybe not needed.
             "cardFromBidWinner" -> Json.Null, // TODO. send it only when pass cards phase. just for better ui. maybe not needed
             "bid" -> getBid(table, p.playerIndex),
@@ -390,6 +394,16 @@ class Registry[F[_]: Applicative] {
       case None => Json.Null
       case Some(game) =>
         if (game.phase == RoundEnd) game.players(playerIndexInfoAbout).points.asJson else Json.Null
+    }
+
+  def getPlayedCard(table: Table[F], playerIndexInfoAbout: PlayerIndex): Json =
+    table.game match {
+      case None => Json.Null
+      case Some(game) =>
+        game.players(playerIndexInfoAbout).playedCard match {
+          case None => Json.Null
+          case Some(card) => card.toStringNormal.asJson
+        }
     }
 
   def getTrickCount(table: Table[F], playerIndexInfoAbout: PlayerIndex): Json =
@@ -436,6 +450,7 @@ class Registry[F[_]: Applicative] {
         "bidWinner" -> (if (game.biddingWinnerIndex.isDefined) game.biddingWinnerIndex.get.toString.asJson
                         else Json.Null),
         "cardsPlayed" -> game.cardsOnBoard.foldLeft("")((acc, cur) => s"$acc${cur.toStringNormal} ").trim.asJson,
+        "cardsPrevTrick" -> game.previousTrick.foldLeft("")((acc, cur) => s"$acc${cur.toStringNormal} ").trim.asJson,
         "trumpSuit" -> (if (game.trump.isDefined) game.trump.get.toString.asJson else Json.Null),
       )
 

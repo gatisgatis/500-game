@@ -156,7 +156,9 @@ object Actions {
 
       val newActivePlayerCards = activePlayer.cards.filter(_ != card)
 
-      val newActivePlayer = activePlayer.copy(cards = newActivePlayerCards)
+      val newActivePlayersPlayedCard = Some(card)
+
+      val newActivePlayer = activePlayer.copy(cards = newActivePlayerCards, playedCard = newActivePlayersPlayedCard)
 
       game.requiredSuit match {
         // This means it's not first card on the board
@@ -210,6 +212,7 @@ object Actions {
               players = newPlayers,
               phase = newPhase,
               cardsOnBoard = Nil,
+              previousTrick = newCardsOnBoard,
               requiredSuit = None,
               activePlayerIndex = playerIndexTakingTrick,
             )
@@ -252,9 +255,14 @@ object Actions {
             } else 0
           } else 0
 
+          val nextPlayer = game.players(game.activePlayerIndex.next)
+          val prevPlayer = game.players(game.activePlayerIndex.previous)
+
           val newPlayers = game.players
             .updated(game.activePlayerIndex, newActivePlayer)
             .updated(game.activePlayerIndex, newActivePlayer.copy(points = newActivePlayer.points + pointsFromMarriage))
+            .updated(game.activePlayerIndex.next, nextPlayer.copy(playedCard = None))
+            .updated(game.activePlayerIndex.previous, prevPlayer.copy(playedCard = None))
 
           // Info msg about what happened this turn
           val optionalMsgAboutBonusPoints =
