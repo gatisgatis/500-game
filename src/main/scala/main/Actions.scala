@@ -260,7 +260,11 @@ object Actions {
 
           val newPlayers = game.players
             .updated(game.activePlayerIndex, newActivePlayer)
-            .updated(game.activePlayerIndex, newActivePlayer.copy(points = newActivePlayer.points + pointsFromMarriage))
+            .updated(
+              game.activePlayerIndex,
+              newActivePlayer
+                .copy(points = newActivePlayer.points + pointsFromMarriage),
+            )
             .updated(game.activePlayerIndex.next, nextPlayer.copy(playedCard = None))
             .updated(game.activePlayerIndex.previous, prevPlayer.copy(playedCard = None))
 
@@ -278,6 +282,7 @@ object Actions {
             trump = newTrump,
             activePlayerIndex = game.activePlayerIndex.next,
             players = newPlayers,
+            marriagePoints = pointsFromMarriage,
           )
       }
     }

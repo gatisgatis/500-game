@@ -452,6 +452,7 @@ class Registry[F[_]: Applicative] {
         "cardsPlayed" -> game.cardsOnBoard.foldLeft("")((acc, cur) => s"$acc${cur.toStringNormal} ").trim.asJson,
         "cardsPrevTrick" -> game.previousTrick.foldLeft("")((acc, cur) => s"$acc${cur.toStringNormal} ").trim.asJson,
         "trumpSuit" -> (if (game.trump.isDefined) game.trump.get.toString.asJson else Json.Null),
+        "marriagePoints" -> game.marriagePoints.asJson,
       )
 
 }
