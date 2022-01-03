@@ -47,6 +47,12 @@ object Server {
 
       case GET -> Root / "tables" => Ok(registry.tablesJson)
 
+      case GET -> Root / "results" / tableId =>
+        registry.tablesMap.get(TableId(tableId)) match {
+          case Some(table) => Ok(registry.resultsJson(table))
+          case None => Ok("Table does not exist") // bad. change this
+        }
+
       case req @ POST -> Root / "login" =>
         req
           .as[String]

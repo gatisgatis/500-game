@@ -455,4 +455,31 @@ class Registry[F[_]: Applicative] {
         "marriagePoints" -> game.marriagePoints.asJson,
       )
 
+  def resultsJson(table: Table[F]): String =
+    table.game match {
+      case Some(game) =>
+        Json
+          .obj(
+            "type" -> "results".asJson,
+            "isStarted" -> true.asJson,
+            "list" -> game.results.map { r =>
+              Json.obj(
+                "winningBid" -> r.winningBid.asJson,
+                "winnerIndex" -> r.playerIndexWinningBid.toString.asJson,
+                "Player_1" -> r.pointsGame(FirstPlayer).asJson,
+                "Player_2" -> r.pointsGame(SecondPlayer).asJson,
+                "Player_3" -> r.pointsGame(ThirdPlayer).asJson,
+              )
+            }.asJson,
+          )
+          .toString
+      case None =>
+        Json
+          .obj(
+            "type" -> "results".asJson,
+            "isStarted" -> false.asJson,
+            "list" -> List.empty[String].asJson,
+          )
+          .toString
+    }
 }
