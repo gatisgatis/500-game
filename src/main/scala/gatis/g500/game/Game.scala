@@ -18,6 +18,7 @@ final case class Game(
   phase: Phase,
   results: List[Results],
   marriagePoints: Int,
+  isSmallMarriageAllowed: Boolean,
 ) {
   override def toString: String = {
     val cardsOnBoardAsString: String =
@@ -108,6 +109,7 @@ object Game {
       results = results,
       playerIndexStartingThisRound = startPlayerIndex,
       marriagePoints = 0,
+      isSmallMarriageAllowed = false,
     )
   }
 }

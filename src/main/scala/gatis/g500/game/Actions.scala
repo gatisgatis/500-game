@@ -212,16 +212,19 @@ object Actions {
           val newTrump = if (game.trump.isEmpty) Some(card.suit) else game.trump
 
           // updates points if has 'marriage'. 40 for trump, 20 for non-trump marriage
-          // TODO. small marriages is allowed only if big marriage played this round...
           val pointsFromMarriage = if (card.rank == Queen) {
             val hasSameSuitKing = newActivePlayerCards.contains(Card(card.suit, King))
             if (hasSameSuitKing) {
-              if (card.suit == newTrump.get) 40 else 20
+              if (card.suit == newTrump.get) 40
+              else if (game.isSmallMarriageAllowed) 20
+              else 0
             } else 0
           } else if (card.rank == King) {
             val hasSameSuitQueen = newActivePlayerCards.contains(Card(card.suit, Queen))
             if (hasSameSuitQueen) {
-              if (card.suit == newTrump.get) 40 else 20
+              if (card.suit == newTrump.get) 40
+              else if (game.isSmallMarriageAllowed) 20
+              else 0
             } else 0
           } else 0
 
