@@ -4,11 +4,11 @@ import cats.Applicative
 
 import scala.collection.mutable.ListBuffer
 import cats.syntax.all.*
-import main.{Actions, Card, Deck, Game, PlayerIndex}
-import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
+import gatis.g500.game.{Actions, Card, Deck, Game, PlayerIndex}
+import gatis.g500.game.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 import io.circe.*
 import io.circe.syntax.*
-import main.Phase.{Bidding, GameEnd, PassCards, PlayCards, RoundEnd, TakeCards}
+import gatis.g500.game.Phase.{Bidding, GameEnd, PassCards, PlayCards, RoundEnd, TakeCards}
 
 import scala.collection.concurrent.TrieMap
 import scala.util.Random

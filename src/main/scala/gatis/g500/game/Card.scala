@@ -1,4 +1,4 @@
-package main
+package gatis.g500.game
 
 case class Card(suit: Suit, rank: Rank) {
   def value: Int = rank.value

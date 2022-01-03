@@ -1,4 +1,4 @@
-package main
+package gatis.g500.game
 
 sealed trait Rank {
   def toString: String

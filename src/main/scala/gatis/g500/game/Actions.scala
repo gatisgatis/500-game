@@ -1,8 +1,8 @@
-package main
+package gatis.g500.game
 
-import main.Phase.{Bidding, PassCards, PlayCards, TakeCards}
-import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
-import main.Rank.{King, Queen}
+import Phase.{Bidding, PassCards, PlayCards, TakeCards}
+import PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
+import Rank.{King, Queen}
 
 object Actions {
 

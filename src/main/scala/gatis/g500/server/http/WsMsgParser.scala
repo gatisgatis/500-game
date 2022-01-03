@@ -1,6 +1,6 @@
 package gatis.g500.server.http
 
-import main.PlayerIndex
+import gatis.g500.game.PlayerIndex
 
 trait Command
 

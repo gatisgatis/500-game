@@ -1,6 +1,6 @@
-package main
+package gatis.g500.game
 
-import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
+import gatis.g500.game.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 
 trait Results {
   val winningBid: Int

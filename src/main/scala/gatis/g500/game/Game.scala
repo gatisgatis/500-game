@@ -1,7 +1,7 @@
-package main
+package gatis.g500.game
 
-import main.Phase.{Bidding, GameEnd, PassCards, PlayCards, RoundEnd, TakeCards}
-import main.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
+import gatis.g500.game.Phase.{Bidding, GameEnd, PassCards, PlayCards, RoundEnd, TakeCards}
+import gatis.g500.game.PlayerIndex.{FirstPlayer, SecondPlayer, ThirdPlayer}
 
 final case class Game(
   cardsOnBoard: List[Card],

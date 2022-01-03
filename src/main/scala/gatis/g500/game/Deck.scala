@@ -1,4 +1,4 @@
-package main
+package gatis.g500.game
 
 import scala.util.Random
 
