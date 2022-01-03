@@ -1,7 +1,5 @@
 package gatis.g500.server.http
 
-import gatis.g500.game.PlayerIndex
-
 trait Command
 
 object Command {
