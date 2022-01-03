@@ -57,7 +57,7 @@ class Registry[F[_]: Applicative] {
           .sequence *> ps
           .map(ply => ply.player.toClient(tableJson(tablesMap(tId), ply.playerIndex)))
           .sequence *> playersList
-          .map(ply => ply.toClient(playersListJson))
+          .map(_.toClient(playersListJson))
           .toList
           .sequence *> List(p).map(_.toClient(tablesJson)).sequence *> ()
           .pure[F]
@@ -65,7 +65,7 @@ class Registry[F[_]: Applicative] {
         // playersList -> playersList
         // me -> tablesList
         playersList
-          .map(ply => ply.toClient(playersListJson))
+          .map(_.toClient(playersListJson))
           .toList
           .sequence *> List(p).map(_.toClient(tablesJson)).sequence *> ()
           .pure[F]
@@ -76,7 +76,7 @@ class Registry[F[_]: Applicative] {
       // playersList -> playersList
       // playersList -> generalInfo
       playersList
-        .map(ply => ply.toClient(playersListJson))
+        .map(_.toClient(playersListJson))
         .toList
         .sequence *>
         playersList.map(_.toClient(generalInfoJson(s"$name joined the site"))).toList.sequence *>
