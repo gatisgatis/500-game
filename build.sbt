@@ -15,7 +15,6 @@ scalacOptions := Seq(
 //  "-Wconf:msg=\\$implicit\\$:s", // https://github.com/oleg-py/better-monadic-for/issues/50#issuecomment-788150296
 )
 
-
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-effect" % catsEfVersion,
   "org.typelevel" %% "cats-core" % catsVersion,
@@ -23,6 +22,6 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-blaze-client" % Http4sVersion,
   "org.http4s" %% "http4s-dsl" % Http4sVersion,
   "org.http4s" %% "http4s-circe" % Http4sVersion,
-
+  "org.http4s" %% "http4s-server" % Http4sVersion,
   Circe.Generic,
 )

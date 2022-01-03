@@ -14,7 +14,7 @@ import fs2.concurrent.Queue
 import org.http4s.dsl.Http4sDsl
 import cats.syntax.all.*
 import gatis.g500.server.http.Command.*
-import org.http4s.dsl.impl.QueryParamDecoderMatcher
+import org.http4s.server.middleware._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.global
@@ -89,7 +89,13 @@ object Server {
         } yield response
     }
 
-    val httpApp = Router("/" -> service).orNotFound
+    val methodConfig = CORSConfig.default
+      .withAnyOrigin(true)
+      .withAnyMethod(true)
+
+    val corsService = CORS(service, methodConfig)
+
+    val httpApp = Router("/" -> corsService).orNotFound
 
     BlazeServerBuilder[F](executionContext)
       .withWebSockets(true)
