@@ -58,11 +58,6 @@ object Actions {
 
       val newPlayers = game.players.updated(game.activePlayerIndex, newActivePlayer)
 
-      // Info msg about what happened this turn
-      val msg = s"ACTION: ${game.activePlayerIndex} ${if (bid > 0) s"made a bid of $bid" else "passed"}"
-      println(msg)
-      println()
-
       game.copy(
         phase = newPhase,
         activePlayerIndex = newActivePlayerIndex,
@@ -79,12 +74,6 @@ object Actions {
       val newCards = player.cards ::: game.cardsToTake
       val newPlayer = player.copy(cards = newCards)
       val newPlayers = game.players.updated(game.activePlayerIndex, newPlayer)
-
-      // Info msg about what happened this turn
-      val msg =
-        s"ACTION: ${game.activePlayerIndex} took ${game.cardsToTake.foldLeft("")((acc, cur) => acc + cur.toString + " ")} from the board"
-      println(msg)
-      println()
 
       Right(game.copy(players = newPlayers, cardsToTake = Nil, phase = game.phase.nextPhase))
     }
@@ -114,12 +103,6 @@ object Actions {
         game.activePlayerIndex.next -> newPlayerOnLeft,
         game.activePlayerIndex.previous -> newPlayerOnRight,
       )
-
-      // Info msg about what happened this turn
-      val msg: String =
-        s"ACTION: ${game.activePlayerIndex} passed $cardToRight to ${game.activePlayerIndex.previous} and $cardToLeft to ${game.activePlayerIndex.next}"
-      println(msg)
-      println()
 
       game.copy(players = newPlayers, phase = game.phase.nextPhase)
     }
@@ -181,10 +164,8 @@ object Actions {
               else game.activePlayerIndex
             }
 
-            // What if player taking trick is the same as active player? How to update points and cards then...?
             val playerTakingTrick = {
               if (playerIndexTakingTrick == game.activePlayerIndex) newActivePlayer
-              // this could throw?
               else game.players(playerIndexTakingTrick)
             }
 
@@ -201,13 +182,6 @@ object Actions {
             // change phase if last card played
             val newPhase = if (newActivePlayer.cards.isEmpty) game.phase.nextPhase else game.phase
 
-            // Info msg about what happened this turn
-            val msg: String =
-              s"ACTION: ${game.activePlayerIndex} played $card. $playerIndexTakingTrick took down a trick of " +
-                s"${newCardsOnBoard.foldLeft("")((acc, cur) => acc + cur.toString + " ")}and collected $pointsFromTrick points"
-            println(msg)
-            println()
-
             game.copy(
               players = newPlayers,
               phase = newPhase,
@@ -221,11 +195,6 @@ object Actions {
           } else {
 
             val newPlayers = game.players.updated(game.activePlayerIndex, newActivePlayer)
-
-            // Info msg about what happened this turn
-            val msg: String = s"ACTION: ${game.activePlayerIndex} played $card"
-            println(msg)
-            println()
 
             game.copy(
               cardsOnBoard = newCardsOnBoard,
@@ -243,6 +212,7 @@ object Actions {
           val newTrump = if (game.trump.isEmpty) Some(card.suit) else game.trump
 
           // updates points if has 'marriage'. 40 for trump, 20 for non-trump marriage
+          // TODO. small marriages is allowed only if big marriage played this round...
           val pointsFromMarriage = if (card.rank == Queen) {
             val hasSameSuitKing = newActivePlayerCards.contains(Card(card.suit, King))
             if (hasSameSuitKing) {
@@ -259,7 +229,6 @@ object Actions {
           val prevPlayer = game.players(game.activePlayerIndex.previous)
 
           val newPlayers = game.players
-            .updated(game.activePlayerIndex, newActivePlayer)
             .updated(
               game.activePlayerIndex,
               newActivePlayer
@@ -267,14 +236,6 @@ object Actions {
             )
             .updated(game.activePlayerIndex.next, nextPlayer.copy(playedCard = None))
             .updated(game.activePlayerIndex.previous, prevPlayer.copy(playedCard = None))
-
-          // Info msg about what happened this turn
-          val optionalMsgAboutBonusPoints =
-            if (pointsFromMarriage > 0) s" and announced marriage collecting additional $pointsFromMarriage points"
-            else ""
-          val msg: String = s"ACTION: ${game.activePlayerIndex} played $card$optionalMsgAboutBonusPoints"
-          println(msg)
-          println()
 
           game.copy(
             cardsOnBoard = newCardsOnBoard,
@@ -304,7 +265,7 @@ object Actions {
         val resultPoints =
           if (diffOfFive > 2) points - diffOfFive + 5
           else points - diffOfFive
-        // If player's gamePonts is under 100, only way to decrease gamePoints is by bidding..
+        // If player's gamePoints is under 100, only way to decrease gamePoints is by bidding..
         game.results.lastOption match {
           case None => resultPoints
           case Some(line) =>
@@ -352,18 +313,6 @@ object Actions {
 
     val newResults = game.results :+ result
 
-    // Info msg about what happened this turn
-    val msg = playerIndexWinningBid match {
-      case FirstPlayer =>
-        s"$FirstPlayer played a game ($winningBid) and ${if (firstPlayerRoundPoints > 0) "won" else "lost"}"
-      case SecondPlayer =>
-        s"$SecondPlayer played a game ($winningBid) and ${if (secondPlayerRoundPoints > 0) "won" else "lost"}"
-      case ThirdPlayer =>
-        s"$ThirdPlayer played a game ($winningBid) and ${if (thirdPlayerRoundPoints > 0) "won" else "lost"}"
-    }
-    println(msg)
-    println()
-
     def determineWinnerOfGame: Option[PlayerIndex] =
       if (result.pointsGame(FirstPlayer) <= 0) Some(FirstPlayer)
       else if (result.pointsGame(SecondPlayer) <= 0) Some(SecondPlayer)
@@ -375,11 +324,8 @@ object Actions {
       case None =>
         Right(Game.init(game.roundNumber + 1, game.playerIndexStartingThisRound.next, newResults, Deck.shuffle))
       case Some(winnerIndex) =>
-        println(s"$winnerIndex won the game!!!")
-        println()
         Right(game.copy(results = newResults, phase = game.phase.nextPhase))
     }
-
   }
 
 }

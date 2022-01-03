@@ -266,7 +266,6 @@ class Registry[F[_]: Applicative] {
                 // INIT GAME
                 val game = Game.init(1, FirstPlayer, Nil, Deck.shuffle)
 
-                // update tablesMap
                 val tt = t.copy(game = Some(game))
                 tablesMap.update(tableId, tt)
 
@@ -338,8 +337,6 @@ class Registry[F[_]: Applicative] {
                   } yield newGame
                 case GameEnd => Left("Game End") // TODO. What Now?
               }
-
-              println(newGame)
 
               newGame match {
                 case Right(value) =>
