@@ -107,12 +107,23 @@ object Actions {
       game.copy(players = newPlayers, phase = game.phase.nextPhase)
     }
 
-  private def getCardsAllowedToPlay(cards: List[Card], requiredSuit: Option[Suit]): List[Card] =
+  private def getCardsAllowedToPlay(
+    cards: List[Card],
+    requiredSuit: Option[Suit],
+    trumpSuit: Option[Suit],
+  ): List[Card] =
     requiredSuit match {
       case Some(suit) =>
-        val requiredSuitCards = cards.filter(_.suit == suit)
-        if (requiredSuitCards.isEmpty) cards
-        else requiredSuitCards
+        trumpSuit match {
+          case Some(trump) =>
+            val requiredSuitCards = cards.filter(_.suit == suit)
+            val trumpCards = cards.filter(_.suit == trump)
+            if (requiredSuitCards.isEmpty) {
+              if (trumpCards.isEmpty) cards
+              else trumpCards
+            } else requiredSuitCards
+          case None => cards
+        }
       case _ => cards
     }
 
@@ -131,7 +142,7 @@ object Actions {
       _ <- if (game.phase != PlayCards) Left("Cannot play cards. No play-cards phase now") else Right(())
       activePlayer = game.players(game.activePlayerIndex)
       _ <- if (!activePlayer.cards.contains(card)) Left("Player's hand does not contain picked card") else Right(())
-      cardsAllowedToPlay = getCardsAllowedToPlay(activePlayer.cards, game.requiredSuit)
+      cardsAllowedToPlay = getCardsAllowedToPlay(activePlayer.cards, game.requiredSuit, game.trump)
       _ <- if (!cardsAllowedToPlay.contains(card)) Left("Not allowed to play this card") else Right(())
     } yield {
 
