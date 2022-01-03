@@ -89,13 +89,7 @@ object Server {
         } yield response
     }
 
-    val methodConfig = CORSConfig.default
-      .withAnyOrigin(true)
-      .withAnyMethod(true)
-
-    val corsService = CORS(service, methodConfig)
-
-    val httpApp = Router("/" -> corsService).orNotFound
+    val httpApp = CORS.policy.withAllowOriginAll.httpApp(Router("/" -> service).orNotFound)
 
     BlazeServerBuilder[F](executionContext)
       .withWebSockets(true)
